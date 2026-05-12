@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.35130.168
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Solfège", "Solfège\Solfège\Solfège.csproj", "{BA6F1FAB-C4D8-4B84-8764-42B98FDD5F73}"
+EndProject
+Project("{96E2B04D-8817-42C6-938A-82C39BA4D311}") = "SolfègeContent", "Solfège\SolfègeContent\SolfègeContent.contentproj", "{ABA191B2-F0AE-4605-8C46-7F36D8F15518}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA6F1FAB-C4D8-4B84-8764-42B98FDD5F73}.Debug|x86.ActiveCfg = Debug|x86
+		{BA6F1FAB-C4D8-4B84-8764-42B98FDD5F73}.Debug|x86.Build.0 = Debug|x86
+		{BA6F1FAB-C4D8-4B84-8764-42B98FDD5F73}.Release|x86.ActiveCfg = Release|x86
+		{BA6F1FAB-C4D8-4B84-8764-42B98FDD5F73}.Release|x86.Build.0 = Release|x86
+		{ABA191B2-F0AE-4605-8C46-7F36D8F15518}.Debug|x86.ActiveCfg = Debug|x86
+		{ABA191B2-F0AE-4605-8C46-7F36D8F15518}.Release|x86.ActiveCfg = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C52E2600-EF44-4755-B6F4-1092A663824F}
+	EndGlobalSection
+EndGlobal
