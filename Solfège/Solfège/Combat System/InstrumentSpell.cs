@@ -73,7 +73,7 @@ namespace Solfège
         }
 
  
-        public void UpdateWithEnemies(GameTime gameTime, List<Enemy> enemies)
+        public void UpdateWithEnemies(GameTime gameTime, List<Enemy> enemies, Boss boss = null)
         {
             for (int i = activeNotes.Count - 1; i >= 0; i--)
             {
@@ -82,6 +82,11 @@ namespace Solfège
                 foreach (Enemy e in enemies)
                 {
                     activeNotes[i].CheckEnemyHit(e);
+                }
+
+                if (boss != null && boss.IsAlive)
+                {
+                    activeNotes[i].CheckBossHit(boss);
                 }
 
                 if (activeNotes[i].IsActive == false)

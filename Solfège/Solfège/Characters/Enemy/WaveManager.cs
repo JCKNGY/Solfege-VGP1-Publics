@@ -35,6 +35,10 @@ namespace Solfège
         public List<Shockwave> shockwaves = new List<Shockwave>();
         public List<DroppedCoin> coins = new List<DroppedCoin>();
 
+        public Boss boss = null;
+        public bool BossActive => boss != null && boss.IsAlive;
+        public float bossAnnounceTimer = 0f;
+
         public int enemiesToSpawn = 0;
         public int spawnedThisWave = 0;
         public float spawnTimer = 0f;
@@ -179,11 +183,33 @@ namespace Solfège
             }
 
 
-            conductor.Spell.UpdateWithEnemies(gameTime, enemies);
+            conductor.Spell.UpdateWithEnemies(gameTime, enemies, boss);
 
             if (WaveActive && spawnedThisWave >= enemiesToSpawn && enemies.Count == 0)
             {
                 WaveActive = false;
+                if (CurrentWave % 5 == 0)
+                {
+                    SpawnBoss(playerPosition);
+                }
+            }
+
+            if (bossAnnounceTimer > 0f)
+                bossAnnounceTimer -= elapsed;
+
+            if (BossActive)
+            {
+                boss.Update(gameTime, playerPosition, projectiles, shockwaves);
+
+                int bossDmg = boss.CheckContactDamage(conductor.Position, conductor.Size);
+                if (bossDmg > 0)
+                    conductor.TakeDamage(bossDmg);
+
+                if (!boss.IsAlive)
+                {
+                    SpawnCoinDrop(boss.Position, 20);
+                    TotalKills++;
+                }
             }
         }
 
@@ -199,6 +225,11 @@ namespace Solfège
                 e.Draw(spriteBatch, camera);
             }
 
+            if (BossActive)
+            {
+                boss.Draw(spriteBatch, camera);
+            }
+
             foreach (EnemyProjectile p in projectiles)
             {
                 p.Draw(spriteBatch, camera, pixel);
@@ -210,6 +241,14 @@ namespace Solfège
             }
 
             DrawOffscreenIndicators(spriteBatch, camera);
+            DrawBossOffscreenIndicator(spriteBatch, camera);
+        }
+
+        public void SpawnBoss(Vector2 playerPos)
+        {
+            Vector2 spawnPos = ChooseSpawnPosition(playerPos);
+            boss = new Boss(spawnPos, graphicsDevice);
+            bossAnnounceTimer = 3f;
         }
 
         public void SpawnEnemy(Vector2 playerPos)
@@ -301,6 +340,22 @@ namespace Solfège
                 float angle = (float)Math.Atan2(screenPos.Y - ay, screenPos.X - ax);
                 DrawArrow(spriteBatch, new Vector2(ax, ay), angle, arrowColor);
             }
+        }
+
+        public void DrawBossOffscreenIndicator(SpriteBatch spriteBatch, Camera camera)
+        {
+            if (!BossActive) return;
+
+            const int Pad = 24;
+            Vector2 screenPos = boss.Position - camera.Position;
+            bool onScreen = screenPos.X > -boss.Size.X && screenPos.X < ScreenWidth + boss.Size.X
+                         && screenPos.Y > -boss.Size.Y && screenPos.Y < ScreenHeight + boss.Size.Y;
+            if (onScreen) return;
+
+            float ax = Math.Max(Pad, Math.Min(ScreenWidth - Pad, screenPos.X));
+            float ay = Math.Max(Pad, Math.Min(ScreenHeight - Pad, screenPos.Y));
+            float angle = (float)Math.Atan2(screenPos.Y - ay, screenPos.X - ax);
+            DrawArrow(spriteBatch, new Vector2(ax, ay), angle, new Color(160, 0, 160));
         }
 
         public void DrawArrow(SpriteBatch spriteBatch, Vector2 pos, float angle, Color color)

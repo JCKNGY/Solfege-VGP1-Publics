@@ -193,7 +193,7 @@ namespace Solfège
                     metronome.Update(gameTime, Conductor);
                     //System.Diagnostics.Debug.WriteLine("Conductor Size: " + Conductor.Size + " Center: " + (Conductor.Position + Conductor.Size / 2f));
                     waveManager.Update(gameTime, Conductor.Position + Conductor.Size / 2f, Conductor);
-                    if (!waveManager.WaveActive)
+                    if (!waveManager.WaveActive && !waveManager.BossActive)
                     {
                         waveManager.StartNextWave(Conductor.Position);
                     }
@@ -252,6 +252,29 @@ namespace Solfège
 
                 spriteBatch.DrawString(font, "Wave: " + waveManager.CurrentWave, new Vector2(10, 35), Color.Black);
                 spriteBatch.DrawString(font, "Coins: " + waveManager.CoinsEarned, new Vector2(10, 55), Color.DarkGoldenrod);
+
+                if (waveManager.BossActive)
+                {
+                    int barW = 400;
+                    int barX = ScreenWidth / 2 - barW / 2;
+                    int barH = 16;
+                    int filled = (int)(barW * ((float)waveManager.boss.health / waveManager.boss.maxHealth));
+                    spriteBatch.Draw(pixel, new Rectangle(barX, 8, barW, barH), Color.DarkRed);
+                    spriteBatch.Draw(pixel, new Rectangle(barX, 8, filled, barH), Color.Gold);
+                    string bossLabel = "BOSS";
+                    Vector2 labelSz = font.MeasureString(bossLabel);
+                    spriteBatch.DrawString(font, bossLabel, new Vector2(ScreenWidth / 2f - labelSz.X / 2f, 26), new Color(160, 0, 160));
+                }
+
+                if (waveManager.bossAnnounceTimer > 0f)
+                {
+                    float alpha = Math.Min(1f, waveManager.bossAnnounceTimer);
+                    string bossText = "BOSS INCOMING!";
+                    Vector2 bossTextSz = font.MeasureString(bossText);
+                    spriteBatch.DrawString(font, bossText,
+                        new Vector2(ScreenWidth / 2f - bossTextSz.X / 2f, ScreenHeight / 2f - 60),
+                        Color.Crimson * alpha);
+                }
 
                 Conductor.Draw(spriteBatch, camera, font);
 

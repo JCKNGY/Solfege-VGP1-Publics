@@ -137,6 +137,16 @@ namespace Solfège
                         }
                     }
 
+                    if (waveManager.boss != null && waveManager.boss.IsAlive)
+                    {
+                        Vector2 bossCenter = waveManager.boss.Position + waveManager.boss.Size / 2f;
+                        if (Vector2.Distance(center, bossCenter) <= AttackRange)
+                        {
+                            Vector2 knockDir = bossCenter - center;
+                            waveManager.boss.TakeDamage(finalDamage, knockDir, force);
+                        }
+                    }
+
                     attackCooldown = AttackRate;
                     attackFlash = 0.12f;
                 }

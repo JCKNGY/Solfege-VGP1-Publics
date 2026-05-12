@@ -64,6 +64,23 @@ namespace Solfège
             return false;
         }
 
+        public bool CheckBossHit(Boss boss)
+        {
+            if (!IsActive || !boss.IsAlive) return false;
+
+            Rectangle noteRect = new Rectangle((int)Position.X, (int)Position.Y, (int)Size.X, (int)Size.Y);
+            Rectangle bossRect = new Rectangle((int)boss.Position.X, (int)boss.Position.Y, (int)boss.Size.X, (int)boss.Size.Y);
+
+            if (noteRect.Intersects(bossRect))
+            {
+                Vector2 knockDir = boss.Position - Position;
+                boss.TakeDamage(Damage, knockDir, 100f);
+                IsActive = false;
+                return true;
+            }
+            return false;
+        }
+
         public void Draw(SpriteBatch sb, Camera camera)
         {
             if (!IsActive)
