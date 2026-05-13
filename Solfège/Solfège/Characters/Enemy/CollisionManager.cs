@@ -6,16 +6,19 @@ namespace Solfège
 
     public class CollisionManager
     {
+        // make a rectangle for hitbox
         public static Rectangle GetRect(Vector2 position, Vector2 size)
         {
             return new Rectangle((int)position.X, (int)position.Y, (int)size.X, (int)size.Y);
         }
 
+        // check if two rectangles overlap
         public static bool Overlaps(Vector2 posA, Vector2 sizeA, Vector2 posB, Vector2 sizeB)
         {
             return GetRect(posA, sizeA).Intersects(GetRect(posB, sizeB));
         }
 
+        // check if circle and rectangle overlap
         public static bool CircleOverlapsRect(Vector2 circleCenter, float radius, Vector2 rectPos, Vector2 rectSize)
         {
 
@@ -29,6 +32,7 @@ namespace Solfège
         }
 
 
+        // make sure player doesnt go out of the map
         public static Vector2 ClampToWorld(Vector2 position, Vector2 size)
         {
             float maxX = Map.MapTilesWide * Map.TileWidth - size.X;
@@ -41,6 +45,7 @@ namespace Solfège
         }
 
 
+        // check collisions every frame
         public static void Update(Conductor conductor, WaveManager waveManager)
         {
 

@@ -17,6 +17,7 @@ namespace Solfège
 
         public static readonly Vector2 Size = new Vector2(20, 20);
 
+        // make a music note projectile
         public Projectile(Texture2D sprite, Vector2 origin, Vector2 direction)
         {
             this.sprite = sprite;
@@ -31,6 +32,7 @@ namespace Solfège
             velocity = dir * Speed;
         }
 
+        // move the projectile each frame
         public void Update(GameTime gameTime)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -43,6 +45,7 @@ namespace Solfège
             }
         }
 
+        // check if hit a enemy
         public bool CheckEnemyHit(Enemy e)
         {
             if (!IsActive || !e.IsAlive)
@@ -64,6 +67,7 @@ namespace Solfège
             return false;
         }
 
+        // check if hit the boss
         public bool CheckBossHit(Boss boss)
         {
             if (!IsActive || !boss.IsAlive) return false;
@@ -81,6 +85,7 @@ namespace Solfège
             return false;
         }
 
+        // draw the projectile
         public void Draw(SpriteBatch sb, Camera camera)
         {
             if (!IsActive)
