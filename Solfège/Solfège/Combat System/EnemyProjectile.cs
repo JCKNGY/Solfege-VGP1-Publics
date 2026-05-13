@@ -1,17 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-
+using System;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Media;
-
 
 namespace Solfège
 {
@@ -30,44 +19,48 @@ namespace Solfège
 
         public Texture2D Sprite;
 
-        // make the projectile
+
         public EnemyProjectile(Vector2 origin, Vector2 target, int dmg)
         {
             Position = origin;
             damage = dmg;
 
             Vector2 dir = target - origin;
+
             if (dir.Length() > 0f)
             {
                 dir.Normalize();
             }
+
             velocity = dir * Speed;
         }
 
-        // move the projectile
+
         public void Update(GameTime gameTime)
         {
-            if (!IsAlive) 
+            if (!IsAlive)
             {
                 return;
             }
+
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
             Position += velocity * elapsed;
             timeAlive += elapsed;
-            if (timeAlive >= Lifetime) 
+
+            if (timeAlive >= Lifetime)
             {
                 IsAlive = false;
             }
         }
 
 
-        // check if it hit the player
         public int CheckHit(Vector2 playerPos, Vector2 playerSize)
         {
             if (!IsAlive)
             {
                 return 0;
             }
+
             Rectangle projRect = new Rectangle((int)Position.X, (int)Position.Y, (int)Size.X, (int)Size.Y);
             Rectangle playerRect = new Rectangle((int)playerPos.X, (int)playerPos.Y, (int)playerSize.X, (int)playerSize.Y);
 
@@ -76,10 +69,12 @@ namespace Solfège
                 IsAlive = false;
                 return damage;
             }
+
             return 0;
         }
 
-        // draw the music note rotated to face direction
+
+        // rotate the note sprite so it points the way its flying
         public void Draw(SpriteBatch spriteBatch, Camera camera, Texture2D pixel)
         {
             if (!IsAlive)

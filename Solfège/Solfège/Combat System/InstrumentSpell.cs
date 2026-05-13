@@ -8,9 +8,9 @@ namespace Solfège
 {
     public class InstrumentSpell
     {
-        Texture2D fluteSprite;
-        Texture2D noteSprite;
-        Texture2D pixel;
+        public Texture2D fluteSprite;
+        public Texture2D noteSprite;
+        public Texture2D pixel;
 
         public List<Projectile> activeNotes = new List<Projectile>();
         public List<PianoDrop> activePianos = new List<PianoDrop>();
@@ -20,19 +20,19 @@ namespace Solfège
         public bool HasFlute = false;
         public bool HasPiano = false;
 
-        float orbitAngle = 0f;
-        const float OrbitRadius = 150f;
-        const float OrbitSpeed = 2.8f;
-        const int FluteSize = 56;
+        public float orbitAngle = 0f;
+        public const float OrbitRadius = 150f;
+        public const float OrbitSpeed = 2.8f;
+        public const int FluteSize = 56;
 
-        float pianoCooldown = 0f;
-        const float PianoCooldownMax = 8f;
-        const int PianoDamage = 40;
-        const float PianoTargetRadius = 600f;
+        public float pianoCooldown = 0f;
+        public const float PianoCooldownMax = 8f;
+        public const int PianoDamage = 40;
+        public const float PianoTargetRadius = 600f;
 
-        Random rng = new Random();
+        public Random rng = new Random();
 
-        // set up the flute spell
+
         public InstrumentSpell(ContentManager content, GraphicsDevice gd)
         {
             fluteSprite = content.Load<Texture2D>("sprites/Weapon Sprites/Flute");
@@ -43,7 +43,7 @@ namespace Solfège
         }
 
 
-        // count how many perfect player got in a row
+        // 3 perfect beats in a row triggers the music note ring
         public void ProcessHit(BeatRating rating, Vector2 pos, WaveManager wave)
         {
             if (rating == BeatRating.Perfect)
@@ -63,12 +63,12 @@ namespace Solfège
         }
 
 
-        // shoot music notes in a ring
         public void SpawnMusicBlast(Vector2 pos, WaveManager wave)
         {
             wave.shockwaves.Add(new Shockwave(pos, 300f, 1.0f));
 
             int noteCount = 24;
+
             for (int i = 0; i < noteCount; i++)
             {
                 float angle = MathHelper.ToRadians(i * (360f / noteCount));
@@ -78,7 +78,6 @@ namespace Solfège
         }
 
 
-        // spin the flute around player
         public void Update(GameTime gameTime)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -86,12 +85,11 @@ namespace Solfège
         }
 
 
-        // update notes and pianos and check the hits
+        // updates flying notes, piano cooldown spawning, and piano impact damage
         public void UpdateWithEnemies(GameTime gameTime, List<Enemy> enemies, Boss boss, Vector2 playerCenter)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            // Note projectile updates and hits
             for (int i = activeNotes.Count - 1; i >= 0; i--)
             {
                 activeNotes[i].Update(gameTime);
@@ -112,13 +110,15 @@ namespace Solfège
                 }
             }
 
-            // Piano drop auto-fire on cooldown
+            // piano ability: auto fire on a cooldown when player has it
             if (HasPiano)
             {
                 pianoCooldown -= elapsed;
+
                 if (pianoCooldown <= 0f)
                 {
                     Vector2? target = PickPianoTarget(enemies, boss, playerCenter);
+
                     if (target.HasValue)
                     {
                         activePianos.Add(new PianoDrop(target.Value));
@@ -131,7 +131,7 @@ namespace Solfège
                 }
             }
 
-            // Update piano drops and apply impact damage
+            // piano drops update, on impact frame damage every enemy in the box
             for (int i = activePianos.Count - 1; i >= 0; i--)
             {
                 activePianos[i].Update(elapsed);
@@ -142,8 +142,13 @@ namespace Solfège
 
                     foreach (Enemy e in enemies)
                     {
-                        if (!e.IsAlive) continue;
+                        if (!e.IsAlive)
+                        {
+                            continue;
+                        }
+
                         Rectangle enemyRect = new Rectangle((int)e.Position.X, (int)e.Position.Y, (int)e.Size.X, (int)e.Size.Y);
+
                         if (impact.Intersects(enemyRect))
                         {
                             Vector2 knockDir = e.Position - new Vector2(impact.X + impact.Width / 2f, impact.Y + impact.Height / 2f);
@@ -154,6 +159,7 @@ namespace Solfège
                     if (boss != null && boss.IsAlive)
                     {
                         Rectangle bossRect = new Rectangle((int)boss.Position.X, (int)boss.Position.Y, (int)boss.Size.X, (int)boss.Size.Y);
+
                         if (impact.Intersects(bossRect))
                         {
                             Vector2 knockDir = boss.Position - new Vector2(impact.X + impact.Width / 2f, impact.Y + impact.Height / 2f);
@@ -171,17 +177,22 @@ namespace Solfège
             }
         }
 
-        // find the closest enemy or boss to drop piano on
-        Vector2? PickPianoTarget(List<Enemy> enemies, Boss boss, Vector2 playerCenter)
+
+        public Vector2? PickPianoTarget(List<Enemy> enemies, Boss boss, Vector2 playerCenter)
         {
             Vector2? best = null;
             float bestDist = PianoTargetRadius * PianoTargetRadius;
 
             foreach (Enemy e in enemies)
             {
-                if (!e.IsAlive) continue;
+                if (!e.IsAlive)
+                {
+                    continue;
+                }
+
                 Vector2 c = e.Position + e.Size / 2f;
                 float d = Vector2.DistanceSquared(playerCenter, c);
+
                 if (d < bestDist)
                 {
                     bestDist = d;
@@ -193,6 +204,7 @@ namespace Solfège
             {
                 Vector2 c = boss.Position + boss.Size / 2f;
                 float d = Vector2.DistanceSquared(playerCenter, c);
+
                 if (d < bestDist)
                 {
                     best = c;
@@ -202,10 +214,9 @@ namespace Solfège
             return best;
         }
 
-        // draw flute and notes and piano stuff
+
         public void Draw(SpriteBatch sb, Camera camera, Vector2 playerPos, Vector2 playerSize)
         {
-            // Friendly piano drops (drawn under flute)
             foreach (PianoDrop drop in activePianos)
             {
                 drop.Draw(sb, camera, pixel);

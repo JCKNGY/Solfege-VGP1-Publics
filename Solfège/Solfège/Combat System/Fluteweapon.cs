@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -11,23 +11,24 @@ namespace Solfège
         public Vector2 Position;
         public bool IsAlive = true;
 
-        Vector2 velocity;
-        float timeAlive = 0f;
-        const float Lifetime = 2.5f;
-        const float Speed = 300f;
+        public Vector2 velocity;
+        public float timeAlive = 0f;
+        public const float Lifetime = 2.5f;
+        public const float Speed = 300f;
 
         public static readonly Vector2 Size = new Vector2(20, 20);
         public int Damage = 25;
 
-        Texture2D sprite;
+        public Texture2D sprite;
 
-        // make the music note projectile
+
         public MusicNoteProjectile(Vector2 origin, Vector2 direction, Texture2D sprite)
         {
             Position = origin;
             this.sprite = sprite;
 
             Vector2 dir = direction;
+
             if (dir.Length() > 0f)
             {
                 dir.Normalize();
@@ -36,7 +37,7 @@ namespace Solfège
             velocity = dir * Speed;
         }
 
-        // move the note
+
         public void Update(float elapsed)
         {
             if (!IsAlive)
@@ -54,7 +55,6 @@ namespace Solfège
         }
 
 
-        // check if note hit a zombie
         public bool CheckEnemyHit(Enemy e)
         {
             if (!IsAlive || !e.IsAlive)
@@ -76,7 +76,7 @@ namespace Solfège
             return false;
         }
 
-        // draw the note
+
         public void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (!IsAlive)
@@ -92,22 +92,20 @@ namespace Solfège
 
     public class FluteWeapon
     {
-        Texture2D fluteSprite;
-        Texture2D noteSprite;
+        public Texture2D fluteSprite;
+        public Texture2D noteSprite;
 
         public List<MusicNoteProjectile> Notes = new List<MusicNoteProjectile>();
 
+        public const int NotesPerShockwave = 12;
 
-        const int NotesPerShockwave = 12;
+        public const float OrbitRadius = 60f;
+        public const float OrbitSpeed = 2.5f;
+        public float orbitAngle = 0f;
 
-        const float OrbitRadius = 60f;
-        const float OrbitSpeed = 2.5f;
-        float orbitAngle = 0f;
+        public const int FluteSize = 56;
 
 
-        const int FluteSize = 56;
-
-        // make the flute weapon
         public FluteWeapon(ContentManager content)
         {
             fluteSprite = content.Load<Texture2D>("sprites/Weapon Sprites/Flute");
@@ -115,7 +113,6 @@ namespace Solfège
         }
 
 
-        // spawn a ring of notes
         public void FireShockwave(Vector2 origin)
         {
             for (int i = 0; i < NotesPerShockwave; i++)
@@ -126,7 +123,7 @@ namespace Solfège
             }
         }
 
-        // update the flute orbit and the notes
+
         public void Update(float elapsed, List<Enemy> enemies)
         {
             orbitAngle += OrbitSpeed * elapsed;
@@ -147,10 +144,9 @@ namespace Solfège
             }
         }
 
-        // draw the flute spinning around and notes
+
         public void Draw(SpriteBatch spriteBatch, Camera camera, Vector2 playerPos, Vector2 playerSize)
         {
-
             Vector2 playerCenter = playerPos + playerSize / 2f;
             float px = playerCenter.X + (float)Math.Cos(orbitAngle) * OrbitRadius;
             float py = playerCenter.Y + (float)Math.Sin(orbitAngle) * OrbitRadius;

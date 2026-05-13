@@ -1,15 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Media;
-
 
 namespace Solfège
 {
@@ -23,7 +14,7 @@ namespace Solfège
         public float lifetime;
         public float timeAlive;
 
-        // make the shockwave
+
         public Shockwave(Vector2 origin, float radius, float life)
         {
             center = origin;
@@ -32,18 +23,19 @@ namespace Solfège
             currentRadius = 0f;
         }
 
-        // expand the ring out
+
         public void Update(float elapsed)
         {
             timeAlive += elapsed;
             currentRadius = maxRadius * (timeAlive / lifetime);
+
             if (timeAlive >= lifetime)
             {
                 IsAlive = false;
             }
-            }
+        }
 
-        // check if player is on the ring
+
         public bool CheckHit(Vector2 playerPos, Vector2 playerSize)
         {
             Vector2 playerCenter = playerPos + playerSize / 2f;
@@ -52,7 +44,7 @@ namespace Solfège
             return Math.Abs(dist - currentRadius) < 20f;
         }
 
-        // draw the shockwave ring
+
         public void Draw(SpriteBatch spriteBatch, Camera camera, Texture2D pixel)
         {
             if (!IsAlive)

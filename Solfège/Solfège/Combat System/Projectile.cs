@@ -1,4 +1,3 @@
-﻿using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -6,24 +5,25 @@ namespace Solfège
 {
     public class Projectile
     {
-        Texture2D sprite;
+        public Texture2D sprite;
         public Vector2 Position;
-        Vector2 velocity;
-        float timeAlive = 0f;
-        const float Lifetime = 2.5f;
-        const float Speed = 300f;
+        public Vector2 velocity;
+        public float timeAlive = 0f;
+        public const float Lifetime = 2.5f;
+        public const float Speed = 300f;
         public bool IsActive = true;
         public int Damage = 25;
 
         public static readonly Vector2 Size = new Vector2(20, 20);
 
-        // make a music note projectile
+
         public Projectile(Texture2D sprite, Vector2 origin, Vector2 direction)
         {
             this.sprite = sprite;
             Position = origin;
 
             Vector2 dir = direction;
+
             if (dir.Length() > 0f)
             {
                 dir.Normalize();
@@ -32,7 +32,7 @@ namespace Solfège
             velocity = dir * Speed;
         }
 
-        // move the projectile each frame
+
         public void Update(GameTime gameTime)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -45,7 +45,7 @@ namespace Solfège
             }
         }
 
-        // check if hit a enemy
+
         public bool CheckEnemyHit(Enemy e)
         {
             if (!IsActive || !e.IsAlive)
@@ -67,10 +67,13 @@ namespace Solfège
             return false;
         }
 
-        // check if hit the boss
+
         public bool CheckBossHit(Boss boss)
         {
-            if (!IsActive || !boss.IsAlive) return false;
+            if (!IsActive || !boss.IsAlive)
+            {
+                return false;
+            }
 
             Rectangle noteRect = new Rectangle((int)Position.X, (int)Position.Y, (int)Size.X, (int)Size.Y);
             Rectangle bossRect = new Rectangle((int)boss.Position.X, (int)boss.Position.Y, (int)boss.Size.X, (int)boss.Size.Y);
@@ -82,10 +85,11 @@ namespace Solfège
                 IsActive = false;
                 return true;
             }
+
             return false;
         }
 
-        // draw the projectile
+
         public void Draw(SpriteBatch sb, Camera camera)
         {
             if (!IsActive)
