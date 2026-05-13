@@ -58,10 +58,12 @@
   <ItemGroup>
     <Compile Include="Combat System\Beat.cs" />
     <Compile Include="Characters\Enemy\Boss.cs" />
+    <Compile Include="Characters\Enemy\PianoDrop.cs" />
     <Compile Include="Characters\Players\Camera.cs" />
     <Compile Include="Characters\Enemy\CollisionManager.cs" />
     <Compile Include="Characters\Players\Conductor.cs" />
     <Compile Include="Characters\Enemy\Enemy.cs" />
+    <Compile Include="Characters\Enemy\ZombieAnimator.cs" />
     <Compile Include="Combat System\EnemyProjectile.cs" />
     <Compile Include="Combat System\Fluteweapon.cs" />
     <Compile Include="Combat System\InstrumentSpell.cs" />
@@ -74,6 +76,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Game1.cs" />
     <Compile Include="UI\TitleScreen.cs" />
+    <Compile Include="UI\Shop.cs" />
     <Compile Include="Characters\Enemy\WaveManager.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -26,12 +26,14 @@ namespace Solfège
         public const float AttractRadius = 90f;
         public const float AttractSpeed = 300f;
 
+        // make the coin drop
         public DroppedCoin(Vector2 pos, int value)
         {
             Position = pos;
             Value = value;
         }
 
+        // pull coin to player and collect it
         public void Update(float elapsed, Vector2 playerPos)
         {
             timeAlive += elapsed;
@@ -57,6 +59,7 @@ namespace Solfège
             }
         }
 
+        // draw the coin
         public void Draw(SpriteBatch spriteBatch, Camera camera, Texture2D pixel)
         {
             if (Collected || Expired)
