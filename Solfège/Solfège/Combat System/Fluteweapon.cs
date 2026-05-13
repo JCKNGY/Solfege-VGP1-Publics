@@ -21,6 +21,7 @@ namespace Solfège
 
         Texture2D sprite;
 
+        // make the music note projectile
         public MusicNoteProjectile(Vector2 origin, Vector2 direction, Texture2D sprite)
         {
             Position = origin;
@@ -35,6 +36,7 @@ namespace Solfège
             velocity = dir * Speed;
         }
 
+        // move the note
         public void Update(float elapsed)
         {
             if (!IsAlive)
@@ -52,6 +54,7 @@ namespace Solfège
         }
 
 
+        // check if note hit a zombie
         public bool CheckEnemyHit(Enemy e)
         {
             if (!IsAlive || !e.IsAlive)
@@ -73,6 +76,7 @@ namespace Solfège
             return false;
         }
 
+        // draw the note
         public void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (!IsAlive)
@@ -103,6 +107,7 @@ namespace Solfège
 
         const int FluteSize = 56;
 
+        // make the flute weapon
         public FluteWeapon(ContentManager content)
         {
             fluteSprite = content.Load<Texture2D>("sprites/Weapon Sprites/Flute");
@@ -110,6 +115,7 @@ namespace Solfège
         }
 
 
+        // spawn a ring of notes
         public void FireShockwave(Vector2 origin)
         {
             for (int i = 0; i < NotesPerShockwave; i++)
@@ -120,6 +126,7 @@ namespace Solfège
             }
         }
 
+        // update the flute orbit and the notes
         public void Update(float elapsed, List<Enemy> enemies)
         {
             orbitAngle += OrbitSpeed * elapsed;
@@ -140,6 +147,7 @@ namespace Solfège
             }
         }
 
+        // draw the flute spinning around and notes
         public void Draw(SpriteBatch spriteBatch, Camera camera, Vector2 playerPos, Vector2 playerSize)
         {
 

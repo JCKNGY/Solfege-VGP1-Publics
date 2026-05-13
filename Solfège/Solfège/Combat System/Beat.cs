@@ -17,11 +17,13 @@ namespace Solfège
         Rectangle beatRect;
 
 
+        // load the beat stuff
         public Beat(ContentManager content)
         {
             whitetexture = content.Load<Texture2D>("sprites/white");
             beatRect = new Rectangle(0, 0, 150, 150);
         }
+        // update the beat, dont do anything yet
         public void Update(GameTime gameTime)
         {
 
