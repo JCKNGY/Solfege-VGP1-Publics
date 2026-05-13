@@ -19,6 +19,7 @@ namespace Solfège
         public Texture2D floorTile;
 
 
+        // make the tile texture
         public Map(ContentManager content, GraphicsDevice graphicsDevice)
         {
             floorTile = new Texture2D(graphicsDevice, TileWidth, TileHeight);
@@ -35,11 +36,13 @@ namespace Solfège
             floorTile.SetData(pixels);
         }
 
+        // check if its a wall, not used yet
         public bool IsWall(int tileX, int tileY)
         {
             return false;
         }
 
+        // draw the tiles on the screen
         public void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             int startX = (int)Math.Floor(camera.Position.X / TileWidth);

@@ -60,9 +60,11 @@ namespace Solfège
 
         public BeatRating LastRating {
             get;
-            private set; 
+            private set;
         } = BeatRating.None;
         float ratingTimer = 0f;
+
+        public bool HasAttackedThisCycle { get; private set; } = false;
         const float RatingDuration = 0.65f;
 
         Texture2D pixel;
@@ -75,6 +77,7 @@ namespace Solfège
 
         int screenW, screenH;
 
+        // make the metronome
         public MetronomeSystem(ContentManager content, GraphicsDevice gd)
         {
             screenW = gd.Viewport.Width;
@@ -104,8 +107,11 @@ namespace Solfège
             beatTimer = 0;
         }
 
+        // check how well player hit the beat
         public BeatRating RegisterAction()
         {
+            HasAttackedThisCycle = true;
+
             double halfSPB = SPB / 2.0;
             double distToMiddle = Math.Abs(beatTimer - halfSPB);
 
@@ -127,6 +133,7 @@ namespace Solfège
         }
 
 
+        // how much extra damage based on the rating
         public float GetDamageMultiplier(BeatRating rating)
         {
             float baseMulti = 1.0f;
@@ -147,6 +154,7 @@ namespace Solfège
             return baseMulti * ComboMultiplier;
         }
 
+        // tick the beat and play the heart sound
         public void Update(GameTime gameTime, Conductor player)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -161,6 +169,7 @@ namespace Solfège
                 beatTimer -= SPB;
                 heartRect.Width = newSize;
                 heartRect.Height = newSize;
+                HasAttackedThisCycle = false;
             }
             else
             {
@@ -197,6 +206,7 @@ namespace Solfège
             }
         }
 
+        // draw the beat ui stuff
         public void Draw(SpriteBatch spriteBatch)
         {
             DrawBeatBar(spriteBatch);
@@ -205,6 +215,7 @@ namespace Solfège
             DrawRatingPopup(spriteBatch);
         }
 
+        // update the streak and combo when player hit
         public void ApplyRating(BeatRating rating)
         {
             LastRating = rating;
@@ -253,6 +264,7 @@ namespace Solfège
             }
         }
 
+        // draw the beat bar with timing windows
         public void DrawBeatBar(SpriteBatch spriteBatch)
         {
             int bx = barBg.X;
@@ -280,11 +292,13 @@ namespace Solfège
             spriteBatch.Draw(pixel, new Rectangle(bx + bw - 2, by, 2, bh), Color.White * 0.80f);
         }
 
+        // draw the heart for player hp
         public void DrawHeart(SpriteBatch spriteBatch)
         {
             spriteBatch.Draw(currentTexture, heartRect, sourceRect, Color.White, 0f, new Vector2(32f, 32f), SpriteEffects.None, 0f);
         }
 
+        // draw the streak and combo text
         public void DrawStreakUI(SpriteBatch spriteBatch)
         {
             if (Streak <= 0)
@@ -315,6 +329,7 @@ namespace Solfège
             spriteBatch.DrawString(font, streakText, new Vector2(screenW / 2f - ssz.X / 2f, barBg.Y - 18), streakColor);
         }
 
+        // draw the rating popup like PERFECT or MISS
         private void DrawRatingPopup(SpriteBatch spriteBatch)
         {
             if (ratingTimer <= 0f || LastRating == BeatRating.None)
@@ -343,6 +358,7 @@ namespace Solfège
             spriteBatch.DrawString(font, text, new Vector2(screenW / 2f - sz.X / 2f, barBg.Y - 60 + offsetY), color * alpha);
         }
 
+        // reset all the streak stuff
         public void ResetStreak()
         {
             Streak = 0;

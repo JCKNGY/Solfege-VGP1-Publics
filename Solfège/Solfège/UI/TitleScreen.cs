@@ -15,6 +15,9 @@ namespace Solfège
         Settings,
         Playing,
         Paused,
+        Shop,
+        FluteBanner,
+        PianoBanner,
         GameOver
     }
 
@@ -95,6 +98,9 @@ namespace Solfège
         public int settingsFocus = -1;
 
         public Rectangle[] sliderRects = new Rectangle[3];
+        public Rectangle[] toggleRects = new Rectangle[2];
+        public Rectangle[] menuRects = new Rectangle[4];
+        public Rectangle settingsBackRect = Rectangle.Empty;
 
         public float time = 0f;
 
@@ -105,6 +111,7 @@ namespace Solfège
         public static readonly Color ColInk = new Color(10, 10, 15);
         public static readonly Color ColDeep = new Color(8, 8, 16);
 
+        // make the title screen
         public TitleScreen(GraphicsDevice graphicsDevice, SpriteFont titleFont, SpriteFont menuFont, SpriteFont uiFont, ContentManager content)
         {
             gd = graphicsDevice;
@@ -121,7 +128,7 @@ namespace Solfège
         }
 
 
-        //Lock the screen so nothing start tweaking out
+        // force switch to a screen, kinda hacky
         public void ForceScreen(GameScreen screen)
         {
             CurrentScreen = screen;
@@ -131,6 +138,7 @@ namespace Solfège
                 settingsFocus = 0;
         }
 
+        // send input to whatever screen is active
         public void Update(GameTime gameTime)
         {
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -151,13 +159,14 @@ namespace Solfège
             prevKb = kb;
         }
 
+        // handle title menu keys and mouse
         public void UpdateTitleInput(KeyboardState kb)
         {
             bool up = JustPressed(kb, Keys.Up) || JustPressed(kb, Keys.W);
             bool down = JustPressed(kb, Keys.Down) || JustPressed(kb, Keys.S);
             bool enter = JustPressed(kb, Keys.Enter) || JustPressed(kb, Keys.Space);
 
-            if (up) 
+            if (up)
             {
                 menuIndex = (menuIndex - 1 + menuLabels.Length) % menuLabels.Length;
             }
@@ -166,15 +175,30 @@ namespace Solfège
                 menuIndex = (menuIndex + 1) % menuLabels.Length;
             }
 
-
-
             if (enter)
             {
                 ActivateMenu();
             }
+
+            MouseState mouse = Mouse.GetState();
+            bool clicked = mouse.LeftButton == ButtonState.Pressed && prevMouse.LeftButton == ButtonState.Released;
+            for (int i = 0; i < menuLabels.Length; i++)
+            {
+                if (menuRects[i] != Rectangle.Empty && menuRects[i].Contains(mouse.X, mouse.Y))
+                {
+                    menuIndex = i;
+                    if (clicked)
+                    {
+                        ActivateMenu();
+                    }
+                    break;
+                }
+            }
+            prevMouse = mouse;
         }
 
 
+        // do whatever the menu item say
         public void ActivateMenu()
         {
             if (menuIndex == 0) // New Performance
@@ -207,6 +231,7 @@ namespace Solfège
             }
         }
 
+        // handle settings input
         public void UpdateSettingsInput(KeyboardState kb)
         {
             float dt = (float)(1.0 / 60.0);
@@ -305,21 +330,37 @@ namespace Solfège
                             int pct = (int)Math.Round(ratio * 20f) * 5;
                             pct = Math.Max(0, Math.Min(100, pct));
                             settingsFocus = i;
-                            if (i == 0) 
-                            { 
+                            if (i == 0)
+                            {
                                 musicPct = pct; ApplyVolumes();
                             }
-                            else if (i == 1) 
-                            { 
+                            else if (i == 1)
+                            {
                                 sfxPct = pct;
                             }
-                            else if (i == 2) 
-                            { 
+                            else if (i == 2)
+                            {
                                 masterPct = pct;
                                 ApplyVolumes();
                             }
                         }
                     }
+                }
+
+                if (toggleRects[0] != Rectangle.Empty && toggleRects[0].Contains(mouse.X, mouse.Y))
+                {
+                    ScreenShake = !ScreenShake;
+                    settingsFocus = 3;
+                }
+                else if (toggleRects[1] != Rectangle.Empty && toggleRects[1].Contains(mouse.X, mouse.Y))
+                {
+                    MetronomePulse = !MetronomePulse;
+                    settingsFocus = 4;
+                }
+
+                if (settingsBackRect != Rectangle.Empty && settingsBackRect.Contains(mouse.X, mouse.Y))
+                {
+                    CurrentScreen = GameScreen.Title;
                 }
             }
             prevMouse = mouse;
@@ -343,12 +384,14 @@ namespace Solfège
 
 
 
+            // actually apply the volume change
             public void ApplyVolumes()
             {
                 MediaPlayer.Volume = MusicVolume * MasterVolume;
                 SoundEffect.MasterVolume = SfxVolume * MasterVolume;
             }
 
+        // draw the active screen
         public void Draw(SpriteBatch sb, GameTime gameTime)
         {
             sb.Draw(pixel, new Rectangle(0, 0, SW, SH), ColInk);
@@ -362,6 +405,7 @@ namespace Solfège
                 DrawSettings(sb);
             }
         }
+        // draw the title screen stuff
         public void DrawTitle(SpriteBatch sb)
         {
             float f = fadeIn;
@@ -408,6 +452,8 @@ namespace Solfège
                 float x = SW / 2f - labelSz.X / 2f;
                 float y = menuTop + i * lineH;
 
+                menuRects[i] = new Rectangle((int)(x - 30), (int)y, (int)labelSz.X + 60, (int)labelSz.Y + 8);
+
                 if (selected)
                 {
                     float glow = 0.6f + 0.4f * (float)Math.Sin(glowTimer * 3f);
@@ -427,6 +473,7 @@ namespace Solfège
             }
         }
 
+        // draw the settings panel
         public void DrawSettings(SpriteBatch sb)
         {
             sb.Draw(pixel, new Rectangle(0, 0, SW, SH), Color.Black * 0.65f);
@@ -460,16 +507,34 @@ namespace Solfège
             DrawSectionLabel(sb, "DISPLAY", panelX + 30, (int)cy);
             cy += 28;
 
-            //DrawToggleRow(sb, "Screen Shake", ScreenShake, panelX, panelW, (int)cy, settingsFocus == 3); cy += 38;
-            //DrawToggleRow(sb, "Metronome Pulse", MetronomePulse, panelX, panelW, (int)cy, settingsFocus == 4); cy += 46;
+            DrawToggleRow(sb, "Screen Shake",     ScreenShake,     0, panelX, panelW, (int)cy, settingsFocus == 3); cy += 38;
+            DrawToggleRow(sb, "Metronome Pulse",  MetronomePulse,  1, panelX, panelW, (int)cy, settingsFocus == 4); cy += 46;
+
+            // Back button
+            string backLabel = "BACK";
+            Vector2 backSz = (uiFont != null) ? uiFont.MeasureString(backLabel) : new Vector2(60, 18);
+            int backW = (int)backSz.X + 40;
+            int backH = (int)backSz.Y + 14;
+            int backX = (int)cx - backW / 2;
+            int backY = panelY + panelH - 60;
+            settingsBackRect = new Rectangle(backX, backY, backW, backH);
+            sb.Draw(pixel, settingsBackRect, ColGold * 0.15f);
+            DrawBorder(sb, settingsBackRect, ColGold * 0.6f, 1);
+            if (uiFont != null)
+            {
+                sb.DrawString(uiFont, backLabel,
+                    new Vector2(backX + (backW - backSz.X) / 2f, backY + (backH - backSz.Y) / 2f),
+                    ColWhite);
+            }
 
             if (uiFont != null)
             {
                 Vector2 hSz = uiFont.MeasureString("ESC  to go back     ENTER  to toggle");
-                sb.DrawString(uiFont, "ESC  to go back     ENTER  to toggle", new Vector2(cx - hSz.X / 2f, panelY + panelH - 32), ColMuted * 0.55f);
+                sb.DrawString(uiFont, "ESC  to go back     ENTER  to toggle", new Vector2(cx - hSz.X / 2f, panelY + panelH - 22), ColMuted * 0.55f);
             }
         }
 
+        // draw a slider for volume
         public void DrawSliderRow(SpriteBatch sb, string label, float value, int focusId, int panelX, int panelY, int panelW, int y, bool focused)
         {
             int labelX = panelX + 30;
@@ -525,12 +590,13 @@ namespace Solfège
 
             if (uiFont != null)
             {
-                sb.DrawString(uiFont, ((int)(value * 100)).ToString(), new Vector2(valX, y), rowColor);
+                sb.DrawString(uiFont, ((int)Math.Round(value * 100)).ToString(), new Vector2(valX, y), rowColor);
             }
                 
         }
 
-        public void DrawToggleRow(SpriteBatch sb, string label, bool value, int panelX, int panelW, int y, bool focused)
+        // draw a toggle for settings
+        public void DrawToggleRow(SpriteBatch sb, string label, bool value, int toggleId, int panelX, int panelW, int y, bool focused)
         {
             Color rowColor = ColMuted;
             if (focused)
@@ -544,6 +610,11 @@ namespace Solfège
                 }
 
             int tx = panelX + panelW - 70;
+
+            if (toggleId >= 0 && toggleId < toggleRects.Length)
+            {
+                toggleRects[toggleId] = new Rectangle(panelX + 20, y - 4, panelW - 40, 28);
+            }
 
             Color trackColor = Color.White * 0.08f;
             if (value)
@@ -568,6 +639,7 @@ namespace Solfège
             sb.Draw(pixel, new Rectangle(knobX, y + 3, 14, 14), knobColor);
         }
 
+        // draw a section header like AUDIO
         public void DrawSectionLabel(SpriteBatch sb, string text, int x, int y)
         {
             if (uiFont == null) 
@@ -580,6 +652,7 @@ namespace Solfège
             sb.Draw(pixel, new Rectangle(x + (int)uiFont.MeasureString(text).X + 10, y + 8, 300, 1), ColGold * 0.2f);
         }
 
+        // decorative divider thing
         public void DrawHorizontalRule(SpriteBatch sb, Vector2 center, int halfWidth, float alpha)
         {
             sb.Draw(pixel, new Rectangle((int)(center.X - halfWidth), (int)center.Y, halfWidth * 2, 1),ColGold * 0.5f * alpha);
@@ -587,6 +660,7 @@ namespace Solfège
             sb.Draw(pixel, new Rectangle((int)center.X - 5 / 2, (int)center.Y - 5 / 2 + 1 / 2, 5, 5), ColGold * 0.5f * alpha);
         }
 
+        // draw outline for a panel
         public void DrawBorder(SpriteBatch sb, Rectangle r, Color c, int thickness)
         {
             sb.Draw(pixel, new Rectangle(r.X, r.Y, r.Width, thickness), c);
@@ -595,6 +669,7 @@ namespace Solfège
             sb.Draw(pixel, new Rectangle(r.Right, r.Y, thickness, r.Height), c);
         }
 
+        // check if key was just pressed this frame
         public bool JustPressed(KeyboardState kb, Keys key)
         {
             return kb.IsKeyDown(key) && !prevKb.IsKeyDown(key);

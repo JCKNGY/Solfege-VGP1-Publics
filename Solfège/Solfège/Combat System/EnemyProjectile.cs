@@ -26,8 +26,11 @@ namespace Solfège
         public float timeAlive = 0f;
         public int damage;
 
-        public static readonly Vector2 Size = new Vector2(12, 12);
+        public static readonly Vector2 Size = new Vector2(20, 20);
 
+        public Texture2D Sprite;
+
+        // make the projectile
         public EnemyProjectile(Vector2 origin, Vector2 target, int dmg)
         {
             Position = origin;
@@ -41,6 +44,7 @@ namespace Solfège
             velocity = dir * Speed;
         }
 
+        // move the projectile
         public void Update(GameTime gameTime)
         {
             if (!IsAlive) 
@@ -57,6 +61,7 @@ namespace Solfège
         }
 
 
+        // check if it hit the player
         public int CheckHit(Vector2 playerPos, Vector2 playerSize)
         {
             if (!IsAlive)
@@ -74,14 +79,28 @@ namespace Solfège
             return 0;
         }
 
+        // draw the music note rotated to face direction
         public void Draw(SpriteBatch spriteBatch, Camera camera, Texture2D pixel)
         {
             if (!IsAlive)
             {
                 return;
             }
+
             Vector2 screenPos = Position - camera.Position;
-            spriteBatch.Draw(pixel, new Rectangle((int)screenPos.X, (int)screenPos.Y, (int)Size.X, (int)Size.Y), Color.Red);
+            Vector2 center = screenPos + Size / 2f;
+
+            if (Sprite != null)
+            {
+                float angle = (float)Math.Atan2(velocity.Y, velocity.X);
+                Vector2 origin = new Vector2(Sprite.Width / 2f, Sprite.Height / 2f);
+                float scale = Size.X / (float)Sprite.Width;
+                spriteBatch.Draw(Sprite, center, null, Color.White, angle, origin, scale, SpriteEffects.None, 0f);
+            }
+            else
+            {
+                spriteBatch.Draw(pixel, new Rectangle((int)screenPos.X, (int)screenPos.Y, (int)Size.X, (int)Size.Y), Color.Red);
+            }
         }
     }
 }
