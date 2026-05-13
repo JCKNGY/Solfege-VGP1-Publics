@@ -23,6 +23,7 @@ namespace Solfège
         public const int ScreenHeight = 720;
 
         public TitleScreen titleScreen;
+        public Shop shop;
         public GameScreen currentScreen = GameScreen.Title;
 
         public Map map;
@@ -51,6 +52,8 @@ namespace Solfège
         public string[] pauseLabels = { "Resume", "Settings", "Quit to Title" };
         public int pauseIndex = 0;
         public float pauseGlowTimer = 0f;
+        public Rectangle[] pauseRects = new Rectangle[3];
+        public MouseState oldMouse;
 
 
 
@@ -100,15 +103,17 @@ namespace Solfège
             camera = new Camera(ScreenWidth, ScreenHeight, map.MapWidthPixels, map.MapHeightPixels);
             Conductor = new Conductor(Content, GraphicsDevice);
             metronome = new MetronomeSystem(Content, GraphicsDevice);
-            waveManager = new WaveManager(GraphicsDevice);
+            waveManager = new WaveManager(GraphicsDevice, Content);
+
+            pixel = new Texture2D(GraphicsDevice, 1, 1);
+            pixel.SetData(new[] { Color.White });
+
+            shop = new Shop(font, pixel, ScreenWidth, ScreenHeight);
 
             Conductor.Position = new Vector2(map.MapWidthPixels / 2f, map.MapHeightPixels / 2f);
             camera.CenterOn(Conductor.Position, Conductor.Size);
 
             texture = Content.Load<Texture2D>("sprites/Ui/solfegeTitle");
-
-            pixel = new Texture2D(GraphicsDevice, 1, 1);
-            pixel.SetData(new[] { Color.White });
 
             titleMusic = Content.Load<Song>("Music/TitleMusic");
             gameMusic = Content.Load<Song>("Music/120");
@@ -132,10 +137,14 @@ namespace Solfège
         public void NewGame()
         {
             currentScreen = GameScreen.Playing;
+            Conductor.BaseDamage = 5;
+            Conductor.MaxHealth = 100;
             Conductor.Health = Conductor.MaxHealth;
             Conductor.IsAlive = true;
+            Conductor.HasFlute = false;
+            Conductor.HasPiano = false;
             Conductor.Position = new Vector2(map.MapWidthPixels / 2f, map.MapHeightPixels / 2f);
-            waveManager = new WaveManager(GraphicsDevice);
+            waveManager = new WaveManager(GraphicsDevice, Content);
             metronome.ResetStreak();
             waveManager.StartNextWave(Conductor.Position);
             ApplyAudioSettings();
@@ -169,6 +178,7 @@ namespace Solfège
         {
             GamePadState gp = GamePad.GetState(PlayerIndex.One);
             KeyboardState kb = Keyboard.GetState();
+            IsMouseVisible = (currentScreen != GameScreen.Playing);
             // Allows the game to exit
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
                 this.Exit();
@@ -193,9 +203,28 @@ namespace Solfège
                     metronome.Update(gameTime, Conductor);
                     //System.Diagnostics.Debug.WriteLine("Conductor Size: " + Conductor.Size + " Center: " + (Conductor.Position + Conductor.Size / 2f));
                     waveManager.Update(gameTime, Conductor.Position + Conductor.Size / 2f, Conductor);
-                    if (!waveManager.WaveActive && !waveManager.BossActive)
+                    if (!waveManager.WaveActive && !waveManager.BossActive && !waveManager.BossJustDied)
                     {
                         waveManager.StartNextWave(Conductor.Position);
+                    }
+                    if (waveManager.BossJustDied)
+                    {
+                        waveManager.ClearBossJustDied();
+                        if (waveManager.BossesKilled == 1)
+                        {
+                            Conductor.HasFlute = true;
+                            currentScreen = GameScreen.FluteBanner;
+                        }
+                        else if (waveManager.BossesKilled == 2)
+                        {
+                            Conductor.HasPiano = true;
+                            currentScreen = GameScreen.PianoBanner;
+                        }
+                        else
+                        {
+                            shop.OnEnter();
+                            currentScreen = GameScreen.Shop;
+                        }
                     }
                         CollisionManager.Update(Conductor, waveManager);
                     if (!Conductor.IsAlive)
@@ -209,21 +238,64 @@ namespace Solfège
                 pauseGlowTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
                 UpdatePauseInput(kb);
             }
+            else if (currentScreen == GameScreen.Shop)
+            {
+                shop.Update(gameTime, kb, oldKb, waveManager, Conductor, ref currentScreen);
+            }
+            else if (currentScreen == GameScreen.FluteBanner)
+            {
+                MouseState mouse = Mouse.GetState();
+                bool mouseClicked = mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released;
+                bool dismiss = (!oldKb.IsKeyDown(Keys.Enter) && kb.IsKeyDown(Keys.Enter))
+                            || (!oldKb.IsKeyDown(Keys.Space) && kb.IsKeyDown(Keys.Space))
+                            || (!oldKb.IsKeyDown(Keys.E)     && kb.IsKeyDown(Keys.E))
+                            || mouseClicked;
+                if (dismiss)
+                {
+                    shop.OnEnter();
+                    currentScreen = GameScreen.Shop;
+                }
+                oldMouse = mouse;
+            }
+            else if (currentScreen == GameScreen.PianoBanner)
+            {
+                MouseState mouse = Mouse.GetState();
+                bool mouseClicked = mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released;
+                bool dismiss = (!oldKb.IsKeyDown(Keys.Enter) && kb.IsKeyDown(Keys.Enter))
+                            || (!oldKb.IsKeyDown(Keys.Space) && kb.IsKeyDown(Keys.Space))
+                            || (!oldKb.IsKeyDown(Keys.E)     && kb.IsKeyDown(Keys.E))
+                            || mouseClicked;
+                if (dismiss)
+                {
+                    shop.OnEnter();
+                    currentScreen = GameScreen.Shop;
+                }
+                oldMouse = mouse;
+            }
             else if (currentScreen == GameScreen.GameOver)
             {
-                if (!oldKb.IsKeyDown(Keys.Enter) && kb.IsKeyDown(Keys.Enter))
+                MouseState mouse = Mouse.GetState();
+                bool mouseClicked = mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released;
+                bool enterPressed = !oldKb.IsKeyDown(Keys.Enter) && kb.IsKeyDown(Keys.Enter);
+                oldMouse = mouse;
+                if (enterPressed || mouseClicked)
                 {
                     currentScreen = GameScreen.Title;
                     Conductor.Health = Conductor.MaxHealth;
                     Conductor.IsAlive = true;
+                    Conductor.BaseDamage = 5;
+                    Conductor.MaxHealth = 100;
+                    Conductor.HasFlute = false;
+                    Conductor.HasPiano = false;
                     Conductor.Position = new Vector2(map.MapWidthPixels / 2f, map.MapHeightPixels / 2f);
-                    waveManager = new WaveManager(GraphicsDevice);
+                    waveManager = new WaveManager(GraphicsDevice, Content);
                     metronome.ResetStreak();
                     MediaPlayer.Play(titleMusic);
                 }
             }
 
             oldKb = kb;
+            oldMouse = Mouse.GetState();
             base.Update(gameTime);
         }
 
@@ -272,7 +344,7 @@ namespace Solfège
                     string bossText = "BOSS INCOMING!";
                     Vector2 bossTextSz = font.MeasureString(bossText);
                     spriteBatch.DrawString(font, bossText,
-                        new Vector2(ScreenWidth / 2f - bossTextSz.X / 2f, ScreenHeight / 2f - 60),
+                        new Vector2(ScreenWidth / 2f - bossTextSz.X / 2f, 90),
                         Color.Crimson * alpha);
                 }
 
@@ -291,6 +363,39 @@ namespace Solfège
                 Conductor.Draw(spriteBatch, camera, font);
 
                 DrawPauseOverlay(spriteBatch);
+
+                spriteBatch.End();
+            }
+            else if (currentScreen == GameScreen.Shop)
+            {
+                GraphicsDevice.Clear(ColDeep);
+                spriteBatch.Begin();
+                shop.Draw(spriteBatch, Conductor, waveManager);
+                spriteBatch.End();
+            }
+            else if (currentScreen == GameScreen.FluteBanner)
+            {
+                GraphicsDevice.Clear(Color.White);
+                spriteBatch.Begin();
+
+                map.Draw(spriteBatch, camera);
+                waveManager.Draw(spriteBatch, camera);
+                Conductor.Draw(spriteBatch, camera, font);
+
+                DrawFluteBannerOverlay(spriteBatch);
+
+                spriteBatch.End();
+            }
+            else if (currentScreen == GameScreen.PianoBanner)
+            {
+                GraphicsDevice.Clear(Color.White);
+                spriteBatch.Begin();
+
+                map.Draw(spriteBatch, camera);
+                waveManager.Draw(spriteBatch, camera);
+                Conductor.Draw(spriteBatch, camera, font);
+
+                DrawPianoBannerOverlay(spriteBatch);
 
                 spriteBatch.End();
             }
@@ -337,6 +442,22 @@ namespace Solfège
             {
                 ActivatePauseMenu();
             }
+
+            MouseState mouse = Mouse.GetState();
+            bool clicked = mouse.LeftButton == ButtonState.Pressed && oldMouse.LeftButton == ButtonState.Released;
+            for (int i = 0; i < pauseLabels.Length; i++)
+            {
+                if (pauseRects[i] != Rectangle.Empty && pauseRects[i].Contains(mouse.X, mouse.Y))
+                {
+                    pauseIndex = i;
+                    if (clicked)
+                    {
+                        ActivatePauseMenu();
+                    }
+                    break;
+                }
+            }
+            oldMouse = mouse;
         }
 
         public void ActivatePauseMenu()
@@ -358,7 +479,7 @@ namespace Solfège
                 Conductor.Health = Conductor.MaxHealth;
                 Conductor.IsAlive = true;
                 Conductor.Position = new Vector2(map.MapWidthPixels / 2f, map.MapHeightPixels / 2f);
-                waveManager = new WaveManager(GraphicsDevice);
+                waveManager = new WaveManager(GraphicsDevice, Content);
                 MediaPlayer.Play(titleMusic);
             }
         }
@@ -417,6 +538,8 @@ namespace Solfège
                 float x = cx - labelSz.X / 2f;
                 float y = menuTop + i * lineH;
 
+                pauseRects[i] = new Rectangle((int)(x - 30), (int)y, (int)labelSz.X + 60, (int)labelSz.Y + 8);
+
                 if (selected)
                 {
                     float glow = 0.6f + 0.4f * (float)Math.Sin(pauseGlowTimer * 3f);
@@ -443,6 +566,78 @@ namespace Solfège
             sb.Draw(pixel, new Rectangle((int)(center.X - halfWidth), (int)center.Y, halfWidth * 2, thickness), ColGold * 0.35f * alpha);
             int ds = 5;
             sb.Draw(pixel,new Rectangle((int)center.X - ds / 2, (int)center.Y - ds / 2 + thickness / 2, ds, ds), ColGold * 0.6f * alpha);
+        }
+
+        public void DrawFluteBannerOverlay(SpriteBatch sb)
+        {
+            sb.Draw(pixel, new Rectangle(0, 0, ScreenWidth, ScreenHeight), Color.Black * 0.70f);
+
+            int panelW = 560;
+            int panelH = 280;
+            int panelX = ScreenWidth / 2 - panelW / 2;
+            int panelY = ScreenHeight / 2 - panelH / 2;
+
+            sb.Draw(pixel, new Rectangle(panelX, panelY, panelW, panelH), ColDeep);
+
+            float cx = panelX + panelW / 2f;
+
+            string header = "FLUTE ACQUIRED!";
+            Vector2 headerSz = menuFont.MeasureString(header);
+            sb.DrawString(menuFont, header, new Vector2(cx - headerSz.X / 2f, panelY + 36), ColGold);
+
+            DrawHorizontalRule(sb, new Vector2(cx, panelY + 95), 100, 1f);
+
+            string[] lines = {
+                "The flute now orbits you.",
+                "Land 3 PERFECT beats to unleash",
+                "a ring of music note projectiles."
+            };
+            float lineY = panelY + 112f;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                Vector2 lsz = font.MeasureString(lines[i]);
+                sb.DrawString(font, lines[i], new Vector2(cx - lsz.X / 2f, lineY + i * 26f), ColWhite * 0.90f);
+            }
+
+            string hint = "ENTER / SPACE to continue";
+            Vector2 hSz = font.MeasureString(hint);
+            sb.DrawString(font, hint, new Vector2(cx - hSz.X / 2f, panelY + panelH - 28), ColMuted * 0.55f);
+        }
+
+        public void DrawPianoBannerOverlay(SpriteBatch sb)
+        {
+            sb.Draw(pixel, new Rectangle(0, 0, ScreenWidth, ScreenHeight), Color.Black * 0.70f);
+
+            int panelW = 560;
+            int panelH = 280;
+            int panelX = ScreenWidth / 2 - panelW / 2;
+            int panelY = ScreenHeight / 2 - panelH / 2;
+
+            sb.Draw(pixel, new Rectangle(panelX, panelY, panelW, panelH), ColDeep);
+
+            float cx = panelX + panelW / 2f;
+
+            string header = "PIANO ACQUIRED!";
+            Vector2 headerSz = menuFont.MeasureString(header);
+            sb.DrawString(menuFont, header, new Vector2(cx - headerSz.X / 2f, panelY + 36), ColGold);
+
+            DrawHorizontalRule(sb, new Vector2(cx, panelY + 95), 100, 1f);
+
+            string[] lines = {
+                "Pianos now drop from the sky",
+                "onto the nearest enemy every",
+                "few seconds. Hold your ground."
+            };
+            float lineY = panelY + 112f;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                Vector2 lsz = font.MeasureString(lines[i]);
+                sb.DrawString(font, lines[i], new Vector2(cx - lsz.X / 2f, lineY + i * 26f), ColWhite * 0.90f);
+            }
+
+            string hint = "ENTER / SPACE to continue";
+            Vector2 hSz = font.MeasureString(hint);
+            sb.DrawString(font, hint, new Vector2(cx - hSz.X / 2f, panelY + panelH - 28), ColMuted * 0.55f);
         }
     }
 }
