@@ -39,6 +39,10 @@ namespace Solfège
         public bool BossActive => boss != null && boss.IsAlive;
         public float bossAnnounceTimer = 0f;
 
+        public int BossesKilled { get; private set; } = 0;
+        public bool BossJustDied { get; private set; } = false;
+        public void ClearBossJustDied() { BossJustDied = false; }
+
         public int enemiesToSpawn = 0;
         public int spawnedThisWave = 0;
         public float spawnTimer = 0f;
@@ -52,13 +56,33 @@ namespace Solfège
         public GraphicsDevice graphicsDevice;
         public Random rng = new Random();
 
-        public WaveManager(GraphicsDevice gd)
+        private Texture2D meleeIdleTex;
+        private Texture2D meleeAttackTex;
+        private Texture2D rangeIdleTex;
+        private Texture2D rangeAttackTex;
+        private Texture2D aoeIdleTex;
+        private Texture2D aoeAttackTex;
+        private Texture2D noteProjectileTex;
+        private Texture2D bossProjectileTex;
+
+        // load all the zombie sprites and stuff
+        public WaveManager(GraphicsDevice gd, ContentManager content)
         {
             graphicsDevice = gd;
             pixel = new Texture2D(gd, 1, 1);
             pixel.SetData(new[] { Color.White });
+
+            meleeIdleTex      = content.Load<Texture2D>("sprites/Zombies/MZombieMain");
+            meleeAttackTex    = content.Load<Texture2D>("sprites/Zombies/MZombieHit");
+            rangeIdleTex      = content.Load<Texture2D>("sprites/Zombies/ZombieRangeIdle");
+            rangeAttackTex    = content.Load<Texture2D>("sprites/Zombies/ZombieRangeAttack");
+            aoeIdleTex        = content.Load<Texture2D>("sprites/Zombies/ZombieAOEIdle");
+            aoeAttackTex      = content.Load<Texture2D>("sprites/Zombies/ZombieAOEAttack");
+            noteProjectileTex = content.Load<Texture2D>("sprites/Projectiles/EigthNote");
+            bossProjectileTex = content.Load<Texture2D>("sprites/Projectiles/TrebleClef");
         }
 
+        // start the next wave
         public void StartNextWave(Vector2 playerPosition)
         {
             CurrentWave++;
@@ -69,6 +93,7 @@ namespace Solfège
             WaveActive = true;
         }
 
+        // update everything in the wave
         public void Update(GameTime gameTime, Vector2 playerPosition, Conductor conductor)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -117,12 +142,13 @@ namespace Solfège
                 EnemyProjectile proj = e.Update(gameTime, playerCenter);
                 if (proj != null)
                 {
+                    proj.Sprite = noteProjectileTex;
                     projectiles.Add(proj);
                 }
 
                 if (e.JustSlammed)
                 {
-                    shockwaves.Add(new Shockwave(e.Position, 80f, 0.5f));
+                    shockwaves.Add(new Shockwave(e.Position, 160f, 0.6f));
                 }
 
 
@@ -183,14 +209,17 @@ namespace Solfège
             }
 
 
-            conductor.Spell.UpdateWithEnemies(gameTime, enemies, boss);
+            conductor.Spell.HasFlute = conductor.HasFlute;
+            conductor.Spell.HasPiano = conductor.HasPiano;
+            conductor.Spell.UpdateWithEnemies(gameTime, enemies, boss, conductor.Position + conductor.Size / 2f);
 
             if (WaveActive && spawnedThisWave >= enemiesToSpawn && enemies.Count == 0)
             {
                 WaveActive = false;
-                if (CurrentWave % 5 == 0)
+                if (CurrentWave % 3 == 0)
                 {
-                    SpawnBoss(playerPosition);
+                    BossType nextType = (BossesKilled == 0) ? BossType.Flute : BossType.Piano;
+                    SpawnBoss(playerPosition, nextType);
                 }
             }
 
@@ -205,14 +234,30 @@ namespace Solfège
                 if (bossDmg > 0)
                     conductor.TakeDamage(bossDmg);
 
-                if (!boss.IsAlive)
+                if (boss.Type == BossType.Piano)
                 {
-                    SpawnCoinDrop(boss.Position, 20);
-                    TotalKills++;
+                    foreach (PianoDrop drop in boss.PianoDrops)
+                    {
+                        int dropDmg = drop.CheckHit(conductor.Position, conductor.Size, conductor.MaxHealth);
+                        if (dropDmg > 0)
+                            conductor.TakeDamage(dropDmg);
+                    }
                 }
+            }
+
+            // Boss death detection runs OUTSIDE the BossActive block because the
+            // boss can be killed earlier in the frame (by the spell or melee).
+            if (boss != null && !boss.IsAlive)
+            {
+                SpawnCoinDrop(boss.Position, 10);
+                TotalKills++;
+                BossesKilled++;
+                BossJustDied = true;
+                boss = null;
             }
         }
 
+        // draw enemies and boss and the arrows
         public void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             foreach (DroppedCoin c in coins)
@@ -244,21 +289,42 @@ namespace Solfège
             DrawBossOffscreenIndicator(spriteBatch, camera);
         }
 
-        public void SpawnBoss(Vector2 playerPos)
+        // spawn a boss
+        public void SpawnBoss(Vector2 playerPos, BossType type = BossType.Flute)
         {
             Vector2 spawnPos = ChooseSpawnPosition(playerPos);
-            boss = new Boss(spawnPos, graphicsDevice);
+            boss = new Boss(spawnPos, graphicsDevice, type, bossProjectileTex);
             bossAnnounceTimer = 3f;
         }
 
+        // spawn one of the zombie
         public void SpawnEnemy(Vector2 playerPos)
         {
             Vector2 spawnPos = ChooseSpawnPosition(playerPos);
             EnemyType type = ChooseEnemyType();
-            enemies.Add(new Enemy(spawnPos, graphicsDevice, type, CurrentWave));
+
+            Texture2D idle, attack;
+            switch (type)
+            {
+                case EnemyType.Projectile:
+                    idle = rangeIdleTex;
+                    attack = rangeAttackTex;
+                    break;
+                case EnemyType.Slam:
+                    idle = aoeIdleTex;
+                    attack = aoeAttackTex;
+                    break;
+                default:
+                    idle = meleeIdleTex;
+                    attack = meleeAttackTex;
+                    break;
+            }
+
+            enemies.Add(new Enemy(spawnPos, graphicsDevice, type, CurrentWave, idle, attack));
             spawnedThisWave++;
         }
 
+        // pick a spot off the screen to spawn from
         public Vector2 ChooseSpawnPosition(Vector2 playerPos)
         {
             int side = rng.Next(4);
@@ -294,16 +360,17 @@ namespace Solfège
             return new Vector2(sx, sy);
         }
 
+        // pick what zombie to spawn
         public EnemyType ChooseEnemyType()
         {
             List<EnemyType> pool = new List<EnemyType> { EnemyType.Melee };
 
-            if (CurrentWave >= 2)
+            if (BossesKilled >= 1)
             {
                 pool.Add(EnemyType.Projectile);
                 pool.Add(EnemyType.Projectile);
             }
-            if (CurrentWave >= 3)
+            if (BossesKilled >= 2)
             {
                 pool.Add(EnemyType.Slam);
             }
@@ -311,6 +378,7 @@ namespace Solfège
             return pool[rng.Next(pool.Count)];
         }
 
+        // draw arrow if zombie is off the screen
         public void DrawOffscreenIndicators(SpriteBatch spriteBatch, Camera camera)
         {
             const int Pad = 24;
@@ -342,6 +410,7 @@ namespace Solfège
             }
         }
 
+        // draw arrow if boss is off the screen
         public void DrawBossOffscreenIndicator(SpriteBatch spriteBatch, Camera camera)
         {
             if (!BossActive) return;
@@ -358,11 +427,13 @@ namespace Solfège
             DrawArrow(spriteBatch, new Vector2(ax, ay), angle, new Color(160, 0, 160));
         }
 
+        // draw a arrow pointing somewhere
         public void DrawArrow(SpriteBatch spriteBatch, Vector2 pos, float angle, Color color)
         {
             spriteBatch.Draw(pixel, new Rectangle((int)pos.X - 6, (int)pos.Y - 6, 12, 12), null, color, angle, new Vector2(0.5f, 0.5f), SpriteEffects.None, 0f);
         }
 
+        // spawn coins when something die
         public void SpawnCoinDrop(Vector2 pos, int value)
         {
             int count = Math.Max(1, value / 2);
@@ -375,18 +446,26 @@ namespace Solfège
             }
         }
 
+        // take coins away after buying
+        public void SpendCoins(int amount)
+        {
+            CoinsEarned -= amount;
+            if (CoinsEarned < 0) CoinsEarned = 0;
+        }
+
+        // how much coin each zombie give
         public int CoinValueForType(EnemyType t)
         {
             switch (t)
             {
                 case EnemyType.Melee:
-                    return 3;
+                    return 1;
                 case EnemyType.Projectile:
-                    return 4;
-                case EnemyType.Slam: 
-                    return 6;
-                default: 
+                    return 2;
+                case EnemyType.Slam:
                     return 3;
+                default:
+                    return 1;
             }
         }
 
