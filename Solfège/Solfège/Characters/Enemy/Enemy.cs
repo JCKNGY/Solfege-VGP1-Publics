@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 
@@ -6,10 +6,11 @@ namespace Solfège
 {
     public enum EnemyType
     {
-        Melee,      
-        Projectile, 
-        Slam      
+        Melee,
+        Projectile,
+        Slam
     }
+
 
     public class Enemy
     {
@@ -26,43 +27,36 @@ namespace Solfège
         public Texture2D healthBarBg;
         public Texture2D healthBarFill;
 
-        private ZombieAnimator animator;
-
+        public ZombieAnimator animator;
 
         public float damageCooldown = 0f;
         public const float DamageCooldownMax = 1.0f;
 
-
         public Vector2 knockbackVelocity = Vector2.Zero;
         public const float KnockbackDecay = 8f;
-
 
         public float shootTimer = 0f;
         public float shootCooldown = 2.5f;
         public const float ShootRange = 350f;
-
 
         public float slamTimer = 0f;
         public float slamCooldown = 3.0f;
         public const float SlamRange = 120f;
         public bool JustSlammed = false;
 
-
         public float spawnScale = 0.1f;
         public bool spawning = true;
 
-
         public float hitFlash = 0f;
-
 
         public Vector2 SeparationForce = Vector2.Zero;
 
-        // make the zombie based on which type
+
+        // each zombie type has different stat, scaled up with wave number
         public Enemy(Vector2 spawnPosition, GraphicsDevice graphicsDevice, EnemyType type, int wave, Texture2D idleTexture, Texture2D attackTexture)
         {
             Position = spawnPosition;
             Type = type;
-
 
             float waveScale = 1f + (wave - 1) * 0.25f;
 
@@ -104,77 +98,64 @@ namespace Solfège
         }
 
 
-        public int Damage 
-        {
-            get; 
-            private set; 
-        }
-        public int Health 
-        { 
-            get; 
-            private set;
-        }
-        public int MaxHealth { 
-            get;
-            private set; 
-        }
-        public EnemyType EnemyKind { 
-            get; 
-            private set; 
-        }
-
-
-        // zombie movement and the attack
+        // zombie movement and the attack, returns a projectile if range zombie shoot
         public EnemyProjectile Update(GameTime gameTime, Vector2 playerPosition)
         {
             if (!IsAlive)
             {
                 return null;
             }
+
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
             JustSlammed = false;
 
             animator.Update(elapsed);
 
-
             if (spawning)
             {
                 spawnScale = Math.Min(1f, spawnScale + elapsed * 6f);
+
                 if (spawnScale >= 1f)
                 {
                     spawning = false;
                 }
             }
 
-
             if (hitFlash > 0f)
             {
                 hitFlash -= elapsed;
             }
-
 
             if (damageCooldown > 0f)
             {
                 damageCooldown -= elapsed;
             }
 
-
             if (knockbackVelocity != Vector2.Zero)
             {
                 Position += knockbackVelocity * elapsed;
                 knockbackVelocity -= knockbackVelocity * KnockbackDecay * elapsed;
+
                 if (knockbackVelocity.Length() < 2f)
                 {
                     knockbackVelocity = Vector2.Zero;
                 }
             }
 
-
             Vector2 direction = playerPosition - (Position + Size / 2f);
             float dist = direction.Length();
 
+            // range zombie stop a little before so it can shoot from far
+            float stopDist;
 
-            float stopDist = (Type == EnemyType.Projectile) ? ShootRange * 0.75f : 0f;
+            if (Type == EnemyType.Projectile)
+            {
+                stopDist = ShootRange * 0.75f;
+            }
+            else
+            {
+                stopDist = 0f;
+            }
 
             if (dist > stopDist + 2f)
             {
@@ -186,12 +167,12 @@ namespace Solfège
                 Position += SeparationForce * elapsed;
             }
 
-
             EnemyProjectile fired = null;
 
             if (Type == EnemyType.Projectile)
             {
                 shootTimer -= elapsed;
+
                 if (shootTimer <= 0f && dist < ShootRange)
                 {
                     shootTimer = shootCooldown;
@@ -203,6 +184,7 @@ namespace Solfège
             if (Type == EnemyType.Slam)
             {
                 slamTimer -= elapsed;
+
                 if (slamTimer <= 0f && dist < SlamRange + Size.X)
                 {
                     slamTimer = slamCooldown;
@@ -211,23 +193,22 @@ namespace Solfège
                 }
             }
 
-
             SeparationForce = Vector2.Zero;
 
             return fired;
         }
 
 
-
-        // check if zombie touch the player
         public int CheckContactDamage(Vector2 playerPos, Vector2 playerSize)
         {
-            if (!IsAlive || damageCooldown > 0f){
+            if (!IsAlive || damageCooldown > 0f)
+            {
                 return 0;
             }
+
             if (Type == EnemyType.Projectile)
             {
-                return 0; 
+                return 0;
             }
 
             Rectangle enemyRect = new Rectangle((int)Position.X, (int)Position.Y, (int)Size.X, (int)Size.Y);
@@ -239,11 +220,11 @@ namespace Solfège
                 animator.TriggerAttack();
                 return damage;
             }
+
             return 0;
         }
 
 
-        // zombie take damage and get knocked back
         public void TakeDamage(int amount, Vector2 knockbackDir, float knockbackForce = 200f)
         {
             health -= amount;
@@ -263,14 +244,13 @@ namespace Solfège
             }
         }
 
-        // damage with no knockback
+
         public void TakeDamage(int amount)
         {
             TakeDamage(amount, Vector2.Zero, 0f);
         }
 
 
-        // draw zombie and the hp bar
         public void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (!IsAlive)
@@ -280,9 +260,18 @@ namespace Solfège
 
             Vector2 screenPos = Position - camera.Position;
 
-
             Texture2D currentTex = animator.CurrentTexture;
-            Color tint = hitFlash > 0f ? Color.White * 2f : Color.White;
+
+            Color tint;
+
+            if (hitFlash > 0f)
+            {
+                tint = Color.White * 2f;
+            }
+            else
+            {
+                tint = Color.White;
+            }
 
             if (spawning && spawnScale < 1f)
             {
@@ -295,7 +284,6 @@ namespace Solfège
                 spriteBatch.Draw(currentTex, new Rectangle((int)screenPos.X, (int)screenPos.Y, (int)Size.X, (int)Size.Y), tint);
             }
 
-
             int barW = (int)Size.X;
             int filled = (int)(barW * ((float)health / maxHealth));
             int barY = (int)screenPos.Y - 10;
@@ -304,7 +292,4 @@ namespace Solfège
             spriteBatch.Draw(healthBarFill, new Rectangle((int)screenPos.X, barY, filled, 6), Color.White);
         }
     }
-
-
-    
 }

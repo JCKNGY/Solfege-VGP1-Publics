@@ -19,30 +19,39 @@ namespace Solfège
         public Texture2D floorTile;
 
 
-        // make the tile texture
+        // generate a checkered tile texture at startup
         public Map(ContentManager content, GraphicsDevice graphicsDevice)
         {
             floorTile = new Texture2D(graphicsDevice, TileWidth, TileHeight);
             Color[] pixels = new Color[TileWidth * TileHeight];
+
             for (int y = 0; y < TileHeight; y++)
             {
                 for (int x = 0; x < TileWidth; x++)
                 {
-
                     bool isBorder = (x == 0 || y == 0 || x == TileWidth - 1 || y == TileHeight - 1);
-                    pixels[y * TileWidth + x] = isBorder ? new Color(150, 150, 150) : new Color(220, 220, 220);
+
+                    if (isBorder)
+                    {
+                        pixels[y * TileWidth + x] = new Color(150, 150, 150);
+                    }
+                    else
+                    {
+                        pixels[y * TileWidth + x] = new Color(220, 220, 220);
+                    }
                 }
             }
+
             floorTile.SetData(pixels);
         }
 
-        // check if its a wall, not used yet
+
         public bool IsWall(int tileX, int tileY)
         {
             return false;
         }
 
-        // draw the tiles on the screen
+
         public void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             int startX = (int)Math.Floor(camera.Position.X / TileWidth);

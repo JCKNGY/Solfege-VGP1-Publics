@@ -1,27 +1,23 @@
-﻿using Microsoft.Xna.Framework;
-using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 
 namespace Solfège
 {
-
     public class CollisionManager
     {
-        // make a rectangle for hitbox
         public static Rectangle GetRect(Vector2 position, Vector2 size)
         {
             return new Rectangle((int)position.X, (int)position.Y, (int)size.X, (int)size.Y);
         }
 
-        // check if two rectangles overlap
+
         public static bool Overlaps(Vector2 posA, Vector2 sizeA, Vector2 posB, Vector2 sizeB)
         {
             return GetRect(posA, sizeA).Intersects(GetRect(posB, sizeB));
         }
 
-        // check if circle and rectangle overlap
+
         public static bool CircleOverlapsRect(Vector2 circleCenter, float radius, Vector2 rectPos, Vector2 rectSize)
         {
-
             float closestX = MathHelper.Clamp(circleCenter.X, rectPos.X, rectPos.X + rectSize.X);
             float closestY = MathHelper.Clamp(circleCenter.Y, rectPos.Y, rectPos.Y + rectSize.Y);
 
@@ -32,25 +28,19 @@ namespace Solfège
         }
 
 
-        // make sure player doesnt go out of the map
+        // keep player inside the world bounds
         public static Vector2 ClampToWorld(Vector2 position, Vector2 size)
         {
             float maxX = Map.MapTilesWide * Map.TileWidth - size.X;
             float maxY = Map.MapTilesTall * Map.TileHeight - size.Y;
 
-            return new Vector2(
-                MathHelper.Clamp(position.X, 0, maxX),
-                MathHelper.Clamp(position.Y, 0, maxY)
-            );
+            return new Vector2(MathHelper.Clamp(position.X, 0, maxX), MathHelper.Clamp(position.Y, 0, maxY));
         }
 
 
-        // check collisions every frame
         public static void Update(Conductor conductor, WaveManager waveManager)
         {
-
             conductor.Position = ClampToWorld(conductor.Position, conductor.Size);
-
         }
     }
 }

@@ -7,7 +7,7 @@ namespace Solfège
 {
     public class Conductor
     {
-        private Texture2D texture;
+        public Texture2D texture;
         public Vector2 Position;
         public Vector2 Size;
 
@@ -26,7 +26,7 @@ namespace Solfège
         public bool HasFlute = false;
         public bool HasPiano = false;
 
-        public BeatRating LastAttackRating { get; private set; } = BeatRating.None;
+        public BeatRating LastAttackRating = BeatRating.None;
 
         public float attackFlash = 0f;
 
@@ -34,7 +34,7 @@ namespace Solfège
 
         public InstrumentSpell Spell;
 
-        // make the player
+
         public Conductor(ContentManager content, GraphicsDevice graphicsDevice)
         {
             texture = content.Load<Texture2D>("sprites/Character Sprite/ConductorFront");
@@ -43,7 +43,7 @@ namespace Solfège
             Spell = new InstrumentSpell(content, graphicsDevice);
         }
 
-        // player take damage
+
         public void TakeDamage(int amount)
         {
             Health -= amount;
@@ -55,7 +55,8 @@ namespace Solfège
             }
         }
 
-        // move the player and attack on the beat
+
+        // movement and the beat-timed attack, only fires once per beat cycle
         public void Update(GameTime gameTime, GamePadState gp, KeyboardState kb, Map map, MetronomeSystem metronome, WaveManager waveManager)
         {
             if (!IsAlive)
@@ -71,18 +72,22 @@ namespace Solfège
             {
                 input.Y = -1f;
             }
+
             if (kb.IsKeyDown(Keys.S) || kb.IsKeyDown(Keys.Down))
             {
                 input.Y = 1f;
             }
+
             if (kb.IsKeyDown(Keys.A) || kb.IsKeyDown(Keys.Left))
             {
                 input.X = -1f;
             }
+
             if (kb.IsKeyDown(Keys.D) || kb.IsKeyDown(Keys.Right))
             {
                 input.X = 1f;
             }
+
             if (input.LengthSquared() > 1f)
             {
                 input.Normalize();
@@ -90,18 +95,17 @@ namespace Solfège
 
             Position += input * MoveSpeed * elapsed;
 
-            if (attackCooldown > 0f) 
+            if (attackCooldown > 0f)
             {
                 attackCooldown -= elapsed;
             }
+
             if (attackFlash > 0f)
             {
                 attackFlash -= elapsed;
             }
 
-            bool attackPressed = (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space))
-                              || (kb.IsKeyDown(Keys.J) && !prevKb.IsKeyDown(Keys.J))
-                              || gp.IsButtonDown(Microsoft.Xna.Framework.Input.Buttons.A);
+            bool attackPressed = (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space)) || (kb.IsKeyDown(Keys.J) && !prevKb.IsKeyDown(Keys.J)) || gp.IsButtonDown(Buttons.A);
 
             if (attackPressed && !metronome.HasAttackedThisCycle)
             {
@@ -111,13 +115,16 @@ namespace Solfège
                 Vector2 center = Position + Size / 2f;
 
                 if (HasFlute)
+                {
                     Spell.ProcessHit(rating, center, waveManager);
+                }
 
                 if (attackCooldown <= 0f)
                 {
                     float damageMultiplier = metronome.GetDamageMultiplier(rating);
                     int finalDamage = (int)(BaseDamage * damageMultiplier);
 
+                    // perfect/good beat gives extra knockback force
                     float force = 80f;
 
                     if (rating == BeatRating.Perfect)
@@ -149,6 +156,7 @@ namespace Solfège
                     if (waveManager.boss != null && waveManager.boss.IsAlive)
                     {
                         Vector2 bossCenter = waveManager.boss.Position + waveManager.boss.Size / 2f;
+
                         if (Vector2.Distance(center, bossCenter) <= AttackRange)
                         {
                             Vector2 knockDir = bossCenter - center;
@@ -166,7 +174,7 @@ namespace Solfège
             prevKb = kb;
         }
 
-        // just movement, no attack
+
         public void Update(GameTime gameTime, GamePadState gp, KeyboardState kb, Map map)
         {
             if (!IsAlive)
@@ -177,24 +185,26 @@ namespace Solfège
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
             Vector2 input = Vector2.Zero;
 
-            if (kb.IsKeyDown(Keys.W) || kb.IsKeyDown(Keys.Up)) 
+            if (kb.IsKeyDown(Keys.W) || kb.IsKeyDown(Keys.Up))
             {
                 input.Y = -1f;
             }
+
             if (kb.IsKeyDown(Keys.S) || kb.IsKeyDown(Keys.Down))
             {
                 input.Y = 1f;
             }
+
             if (kb.IsKeyDown(Keys.A) || kb.IsKeyDown(Keys.Left))
             {
                 input.X = -1f;
             }
+
             if (kb.IsKeyDown(Keys.D) || kb.IsKeyDown(Keys.Right))
             {
                 input.X = 1f;
             }
 
-            
             if (input.LengthSquared() > 1f)
             {
                 input.Normalize();
@@ -202,18 +212,19 @@ namespace Solfège
 
             Position += input * MoveSpeed * elapsed;
 
-            Spell.Update(gameTime); 
+            Spell.Update(gameTime);
 
             prevKb = kb;
         }
 
-        // draw player and the flute
+
         public void Draw(SpriteBatch spriteBatch, Camera camera, SpriteFont font)
         {
-            Vector2 spriteOffset = new Vector2((Size.X - texture.Width) / 2f,(Size.Y - texture.Height) / 2f);
+            Vector2 spriteOffset = new Vector2((Size.X - texture.Width) / 2f, (Size.Y - texture.Height) / 2f);
             Vector2 screenPos = Position + spriteOffset - camera.Position;
 
             Color tint = Color.White;
+
             if (attackFlash > 0f)
             {
                 tint = Color.White * 1.8f;
